@@ -1,0 +1,12 @@
+./Miniconda3-latest-Linux-x86_64.sh
+conda init zsh
+conda create -n nerf python=3.8
+conda activate nerf
+conda install pytorch torchvision torchaudio cudatoolkit=11.0 -c pytorch
+pip install yacs
+pip install open3d
+pip install kornia
+pip install imageio imageio-ffmpeg
+pip install pyrender
+
+apt install freeglut-dev
