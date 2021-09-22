@@ -8,8 +8,8 @@ This is an implementation of NeRF.
 
 - Clone this repo:
 ```bash
-git clone https://github.com/samcao416/NeuralVolumeRender.git
-cd NeuralVolumeRender
+git clone https://github.com/samcao416/NeRF_vrvc.git
+cd NeRF_vrvc
 ```
 
 - Install [PyTorch](http://pytorch.org) and other dependencies using: 
