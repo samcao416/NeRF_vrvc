@@ -17,9 +17,9 @@ cd NeRF_vrvc
 conda create -n nerf python=3.8.5
 conda activate nerf    
 conda install pytorch==1.9.0 torchvision torchaudio cudatoolkit=11.1 -c pytorch -c conda-forge
-conda install imageio matplotlib
+conda install imageio
 pip install yacs kornia
-pip install tensorboard
+pip install tensorboard==2.2.0
 ```
 
 
