@@ -33,5 +33,5 @@ The synthetic datasets can be downloaded from [here](https://drive.google
 
 ### To Monitor the trainning process
 - After you can see the PSNR and loss, you can start a new terminal, and `cd [OUTPUT_DIR]` .
-- Run `tensorboard --logdir` . 
+- Run `tensorboard --logdir .` 
 - Now you can watch the PSNR and loss curve as well as the training images in the webpage.

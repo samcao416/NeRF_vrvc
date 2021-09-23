@@ -29,7 +29,7 @@ def gen_alpha(sigma, delta, act_fn=F.relu):
 class VolumeRenderer(nn.Module):
     def __init__(self, boarder_weight = 1e10):
         super(VolumeRenderer, self).__init__()
-        self.boarder_weight = boarder_weight #? so what's boarder_weight
+        self.boarder_weight = boarder_weight 
 
     def forward(self, depth, rgb, sigma, noise=0):
         """
