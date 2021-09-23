@@ -29,7 +29,7 @@ The synthetic datasets can be downloaded from [here](https://drive.google
 ### To Run the Program
 - In the terminal, `mkdir configs`, then `cp ./config_example/hotdog.yml /configs`.
 - Change the training directory(DATASETS:TRAIN) and output directory(OUTPUT_DIR) as you want. 
-- `cd tools` and run `python train_net.py -c <../configs/hotdog.yml>`
+- `cd tools` and run `python train_net.py -c ../configs/hotdog.yml`
 
 ### To Monitor the trainning process
 - After you can see the PSNR and loss, you can start a new terminal, and `cd [OUTPUT_DIR]` .
