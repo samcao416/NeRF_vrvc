@@ -143,7 +143,7 @@ class NeuralRenderer:
             pts = pts.cuda()
             rays = rays.cuda()
 
-            phase = self.model.get_phase(pts, rays)
+            phase = self.model.get_phase(pts, rays) #TODO: No get_phase in rfrender.py
             
             return phase
 
@@ -168,88 +168,6 @@ class NeuralRenderer:
 
             self.image_num += 1
         
-    def render_tilt(self,min,max,step_num, frame=1, up=[0,1,0], auto_save = True, auto_log=True, thick=None, render_type='Gaussian', sample_height=None):
-
-        if thick is None:
-            self.set_thick(self.cfg.DATASETS.SAMPLE_HEIGHT)
-        else:
-            self.set_thick(thick) # Select one mode of Projection and Slice, set thick and bbox_z
-
-        if sample_height is not None:
-            self.dataset.change_bbox_z(-sample_height/2, sample_height/2)
-            self.set_thick(sample_height)
-
-        # Automatically adjust sample point number by thicknnes of rendering model
-        self.adjust_sample_point_number()
-
-        poses, _ = tilt_to_poses(min, max, step_num, up=up)
-        for i in range(poses.shape[0]):
-            if auto_log:
-                print('Rendering image %d / %d' % (i, poses.shape[0]))
-            pose = poses[i]
-            result = self.get_result(pose, frame=1)
-
-            color = self.color(result, render_type=render_type)
-
-            depth = self.depth(result)
-
-            self.images.append(color)
-            self.depths.append(depth)
-            if auto_save:
-                self.save_color(color)
-                self.save_depth(depth)
-
-            self.image_num += 1
-
-    def render_slice(self, step_num, thick, render_type='Gaussian', sample_height=-1, offset=0):
-        if sample_height != -1:
-            self.sample_height = sample_height
-        self.set_thick(thick)
-        # Automatically adjust sample point number by thicknnes of rendering model
-        self.adjust_sample_point_number()
-        h = self.sample_height
-        up = h / 2 + offset
-        slices = [(up - i / step_num * h, up - i / step_num * h - thick) for i in range(step_num)]
-        count = 1
-        for up, down in slices:
-            if down < -h/2 + offset:
-                down = -h/2 + offset
-            print('Rendering image %d / %d, height is %f to %f' % (count, step_num, up, down))
-            self.dataset.change_bbox_z(down, up)
-            self.render_tilt(0,1,1,auto_log=False, thick=thick, render_type=render_type)
-            count += 1
-
-        return
-        
-    def render_thin_slice(self, step_num, auto_save=True):
-
-        poses, _ = tilt_to_poses(0, 1, 1, up=[0, 1, 0])
-        pose = poses[0]
-
-        height = self.cfg.DATASETS.SAMPLE_HEIGHT
-        up = height / 2
-        down = -height / 2
-
-        for i in range(step_num):
-            print('Rendering image %d / %d' % (i, step_num))
-            
-            depth = up + (down-up) * i / step_num
-
-            color = self.get_density(pose, depth)
-
-            color = color.reshape(self.height,self.width,-1).cpu()
-            color = self.postprocessing(color)
-
-            self.images.append(color)
-
-            if auto_save:
-                self.save_color(color)
-
-            self.image_num += 1
-
-
-        return
-
     def render_phase(self, step_num, auto_save=True):
         
         # Central camera pose
@@ -288,27 +206,6 @@ class NeuralRenderer:
 
 
         return
-
-    
-    # def render_gt(self, auto_save=True):
-    #     camera_num = self.camera_num
-    #     # Forward and backward tilt
-    #     for i in range(camera_num * 2):
-    #         id = 0
-    #         if i < camera_num:
-    #             id = i
-    #         else:
-    #             id = 2 * camera_num - i - 1
-    #         image = self.get_gt(id).squeeze(0)
-    #         self.images.append(image)
-
-    #         if auto_save:
-    #             self.save_color(image)
-
-    #         self.image_num += 1
-
-    #     return 
-            
 
     # Save single color image
     def save_color(self, color, path = None):
