@@ -62,6 +62,60 @@ def intersection(rays, bbox):
     tlist = tlist.topk(k=2, dim=-1)
 
     return tlist[0]
+def conical_frustum_to_gaussian(d, t0, t1, base_radius, diag, stable = True):
+    if stable:
+      mu = (t0 + t1) / 2
+      hw = (t1 - t0) / 2
+      t_mean = mu + (2 * mu * hw**2) / (3 * mu**2 + hw**2)
+      t_var = (hw**2) / 3 - (4 / 15) * ((hw**4 * (12 * mu**2 - hw**2)) /
+                                        (3 * mu**2 + hw**2)**2)
+      r_var = base_radius**2 * ((mu**2) / 4 + (5 / 12) * hw**2 - 4 / 15 *
+                                (hw**4) / (3 * mu**2 + hw**2))
+    else:
+      t_mean = (3 * (t1**4 - t0**4)) / (4 * (t1**3 - t0**3))
+      r_var = base_radius**2 * (3 / 20 * (t1**5 - t0**5) / (t1**3 - t0**3))
+      t_mosq = 3 / 5 * (t1**5 - t0**5) / (t1**3 - t0**3)
+      t_var = t_mosq - t_mean**2
+    return lift_gaussian(d, t_mean, t_var, r_var, diag)
+
+def cylinder_to_gaussian(d, t0, t1, radius, diag):
+    t_mean = (t0 + t1) / 2
+    r_var = radius**2 / 4
+    t_var = (t1 - t0)**2 / 12
+    return lift_gaussian(d, t_mean, t_var, r_var, diag)
+    
+def lift_gaussian(d, t_mean, t_var, r_var, diag):
+    mean = d[..., None, :] * t_mean[..., None]
+    small_tensor = torch.ones_like(torch.sum(d**2, dim=-1, keepdims=True)) * 1e-10
+    d_mag_sq = torch.maximum(small_tensor, torch.sum(d**2, dim=-1, keepdims=True))
+    if diag:
+        d_outer_diag = d**2
+        null_outer_diag = 1 - d_outer_diag / d_mag_sq
+        t_cov_diag = t_var[..., None] * d_outer_diag[..., None, :]
+        xy_cov_diag = r_var[..., None] * null_outer_diag[..., None, :]
+        cov_diag = t_cov_diag + xy_cov_diag
+        return mean, cov_diag
+    else:
+        d_outer = d[..., :, None] * d[..., None, :]
+        eye = torch.eye(d.shape[-1])
+        null_outer = eye - d[..., :, None] * (d / d_mag_sq)[..., None, :]
+        t_cov = t_var[..., None, None] * d_outer[..., None, :, :]
+        xy_cov = r_var[..., None, None] * null_outer[..., None, :, :]
+        cov = t_cov + xy_cov
+        return mean, cov
+def cast_rays(t_vals, rays, radii, ray_shape, diag = True):
+    origins = rays[:,0:3]
+    t0 = t_vals[..., :-1]
+    t1 = t_vals[..., 1:]
+    if ray_shape == 'cone':
+        gaussian_fn = conical_frustum_to_gaussian
+    elif ray_shape == 'cylinder':
+        gaussian_fn = cylinder_to_gaussian
+    else:
+        assert False
+    means, covs = gaussian_fn(rays[:,3:6], t0, t1, radii, diag)
+    means = means + origins[..., None, :]
+    return means, covs
 
 class RaySamplePoint(nn.Module):
     def __init__(self, coarse_num=64, noise_level = 0):
@@ -181,7 +235,8 @@ class RaySamplePoint_Near_Far(nn.Module):
         ray_d = rays[:,3:6]
 
         t_vals = torch.linspace(0., 1., steps=self.sample_num,device =rays.device)
-        z_vals = near_far[:,0:1].repeat(1, self.sample_num) * (1.-t_vals).unsqueeze(0).repeat(n,1) +  near_far[:,1:2].repeat(1, self.sample_num) * (t_vals.unsqueeze(0).repeat(n,1))
+        z_vals = near_far[:,0:1].repeat(1, self.sample_num) * (1.-t_vals).unsqueeze(0).repeat(n,1) +\
+                 near_far[:,1:2].repeat(1, self.sample_num) * (t_vals.unsqueeze(0).repeat(n,1))
 
         mids = .5 * (z_vals[...,1:] + z_vals[...,:-1])
         upper = torch.cat([mids, z_vals[...,-1:]], -1)
@@ -201,3 +256,42 @@ class RaySamplePoint_Near_Far(nn.Module):
     def set_coarse_sample_point(self, a):
         self.sample_num = a
 
+class RaySamplePoint_Mip(nn.Module):
+    def __init__(self, 
+                 sample_num = 75, 
+                 ray_shape = "cylinder", 
+                 lindisp = False, 
+                 use_viewdirs = True,
+                 randomized = True):
+        super(RaySamplePoint_Mip, self).__init__()
+        self.sample_num = sample_num
+        self.ray_shape = ray_shape
+        self.lindisp = lindisp
+        self.use_viewdirs = use_viewdirs
+        self.randomized = randomized
+
+
+    def forward(self, rays, radii, near_far):
+        batch_size = rays.shape[0]
+        device = rays.device
+
+        t_vals = torch.linspace(0., 1., setps = self.sample_num + 1, device = device)
+        if self.lindisp:
+            t_vals = 1. / (1. / near_far[:,0:1] * (1. - t_vals) + 1. / near_far[:,1:2] * t_vals) # N, sample_num + 1
+        else:
+            t_vals = near_far[:,0:1] * (1. - t_vals) + near_far[:, 1:2] * t_vals # N, sample_num + 1
+        
+        if self.randomized:
+            mids = 0.5 * (t_vals[..., 1:] + t_vals[..., :-1])
+            upper = torch.cat([mids, t_vals[..., -1:]], -1)
+            lower = torch.cat([t_vals[..., 1], mids], -1)
+            t_rand = torch.rand(batch_size, self.sample_num + 1, device = device)
+            t_vals = lower + (upper - lower) * t_rand
+        else:
+            t_vals = torch.broadcast_to(t_vals, [batch_size, self.sample_num + 1])
+        means, covs = cast_rays(t_vals, rays, radii, self.ray_shape)
+        return t_vals, (means, covs)
+
+    def set_coarse_sample_point(self, a):
+        self.sample_num = a
+        

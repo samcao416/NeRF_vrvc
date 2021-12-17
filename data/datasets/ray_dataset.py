@@ -41,6 +41,9 @@ class Syn_Dataset(torch.utils.data.Dataset):
             rays_tmp = []
             colors_tmp = []
             near_fars_tmp = []
+            viewdirs_tmp = []
+            radii_tmp = []
+            lossmult_tmp = []
 
             for i in range(0, self.image_dataset.cam_num):
                 print('Generating Image No.%d rays' % (i))
@@ -50,24 +53,37 @@ class Syn_Dataset(torch.utils.data.Dataset):
                     print('Skipping Image %d by mask.' % (i))
                     continue
                 
-                rays, colors = ray_sampling_syn(image, poses, focal) #get into ray_sampling.py
+                rays, colors, viewdirs, radii, lossmult = ray_sampling_mip(image, poses, focal) #get into ray_sampling.py
 
                 near_fars_tmp.append(near_far.repeat(rays.size(0), 1))
-                rays_tmp.append(rays)
-                colors_tmp.append(colors)
+                rays_tmp.append(rays) #rays: H*W, 6
+                colors_tmp.append(colors) #colors: H*W, 3
+                viewdirs_tmp.append(viewdirs) #viewdirs: H*W, 3
+                radii_tmp.append(radii) #raddi: H*W, 1
+                lossmult_tmp.append(lossmult) #lossmult: H*W, 1
 
             self.rays = torch.cat(rays_tmp, 0) # (N * H * W, 6)
             self.colors = torch.cat(colors_tmp, 0) #(N * H * W, 3)
+            self.view_dirs = torch.cat(viewdirs_tmp, 0) #(N * H * W, 3)
+            self.radii = torch.cat(radii_tmp, 0) #(N * H * W, 1)
+            self.lossmult = torch.cat(lossmult, 0) #(N * H * W, 1)
             self.near_fars = torch.cat(near_fars_tmp, 0)
 
             torch.save(self.rays, os.path.join(tmp_ray_path, 'rays.pt'))
             torch.save(self.colors, os.path.join(tmp_ray_path, 'colors.pt'))
             torch.save(self.near_fars, os.path.join(tmp_ray_path, 'near_fars.pt'))
+            torch.save(self.view_dirs, os.path.join(tmp_ray_path,  'view_dirs.pt'))
+            torch.save(self.radii, os.path.join(tmp_ray_path, 'radii.pt'))
+            torch.save(self.lossmult, os.path.join(tmp_ray_path, 'lossmult.pt'))
         else:
             print('There are rays generated before, loading rays...')
             self.rays = torch.load(os.path.join(tmp_ray_path, 'rays.pt'), map_location = 'cpu')
             self.colors = torch.load(os.path.join(tmp_ray_path, 'colors.pt'), map_location = 'cpu')
             self.near_fars = torch.load(os.path.join(tmp_ray_path, 'near_fars.pt'), map_location = 'cpu')
+            self.view_dirs = torch.load(os.path.join(tmp_ray_path, 'view_dirs.pt'), map_location = 'cpu')
+            self.radii = torch.load(os.path.join(tmp_ray_path, 'radii.pt'), map_location = 'cpu')
+            self.lossmult = torch.load(os.path.join(tmp_ray_path, 'lossmult.pt'), map_location = 'cpu')
+
     
     #print('Generated %d rays' % self.rays.shape[0])
 
@@ -75,7 +91,8 @@ class Syn_Dataset(torch.utils.data.Dataset):
         return self.rays.shape[0]
 
     def __getitem__(self, index):
-        return self.rays[index, :], self.colors[index, :], self.near_fars[index, :]
+        return self.rays[index, :], self.colors[index, :], self.near_fars[index, :], self.view_dirs[index, :], \
+               self.radii[index, :], self.lossmult[index, :]
         
     def vis(self, cfg):
         pos = []
@@ -130,8 +147,8 @@ class Syn_Dataset_View(torch.utils.data.Dataset):
 
         image, pose, focal, _ , near_far = self.dataset.get_data(index_view)
         image = torch.Tensor(image)
-        rays, colors = ray_sampling_syn(image, pose, focal)
-        return rays, colors, image, near_far.repeat(rays.size(0), 1)
+        rays, colors, view_dirs, radii, lossmult = ray_sampling_mip(image, pose, focal)
+        return rays, colors, image, near_far.repeat(rays.size(0), 1), view_dirs, radii, lossmult
     
     def __getitem__(self, index):
 
@@ -163,7 +180,7 @@ class Syn_Dataset_Render(torch.utils.data.Dataset):
         return image, poses, focal
 
     def get_rays(self, pose):
-        rays  = generate_rays_syn(self.H, self.W, pose, self.focal)
+        rays  = generate_rays_mip(self.H, self.W, pose, self.focal)
         return rays, self.near_far.repeat(rays.size(0),1)
 
     def get_gt_rays(self, i):

@@ -6,7 +6,7 @@ from torch import nn
 import math
 
 from utils import Trigonometric_kernel, sample_pdf
-from layers.RaySamplePoint import RaySamplePoint, RaySamplePoint_Near_Far
+from layers.RaySamplePoint import RaySamplePoint, RaySamplePoint_Near_Far, RaySamplePoint_Mip
 from .spacenet import SpaceNet
 
 from layers.render_layer import VolumeRenderer, gen_weight, Projector, AlphaBlender
@@ -35,7 +35,7 @@ class RFRender(nn.Module):
        
         # Ray Sampling Methods
         if cfg.MODEL.SAMPLE_METHOD == 'NEAR_FAR':
-            self.rsp_coarse = RaySamplePoint_Near_Far(sample_num = self.coarse_ray_sample)   # use near far to sample points on rays
+            self.rsp_coarse = RaySamplePoint_Mip(sample_num = self.coarse_ray_sample)   # use near far to sample points on rays
         elif cfg.MODEL.SAMPLE_METHOD == 'BBOX':
             self.rsp_coarse = RaySamplePoint(self.coarse_ray_sample)            # use bounding box to define point sampling ranges on rays
 
@@ -67,7 +67,7 @@ class RFRender(nn.Module):
     depths:  depth of each ray (N,1) 
 
     '''
-    def forward(self, rays, bboxes=None, near_far=None, rendering=False):
+    def forward(self, rays, view_dirs, radii, lossmult, bboxes=None, near_far=None, rendering=False):
         
         results = {} 
 
@@ -79,7 +79,7 @@ class RFRender(nn.Module):
 
         if self.sample_method == 'NEAR_FAR':
             assert near_far is not None, 'require near_far as input '
-            sampled_rays_coarse_t, sampled_rays_coarse_xyz  = self.rsp_coarse.forward(rays , near_far = near_far)
+            sampled_rays_coarse_t, sampled_rays_coarse_xyz  = self.rsp_coarse.forward(rays, radii, near_far = near_far)
             rays_t = rays
         else:
             sampled_rays_coarse_t, sampled_rays_coarse_xyz, ray_mask  = self.rsp_coarse.forward(rays, bboxes)
