@@ -7,7 +7,7 @@ MODEL:
   SAME_SPACENET: False
   
   TKERNEL_INC_RAW: True
-  POSE_REFINEMENT: False # If doing the camera pose refinement
+  #POSE_REFINEMENT: False # If doing the camera pose refinement
   
   USE_DIR: True
  
@@ -20,7 +20,7 @@ DATASETS:
   FACTOR: 2
   FIXED_NEAR: 2.0
   FIXED_FAR: 6.0
-
+  PE_METHOD: "origin" # origin or mip
   SCALE: 1.0 # scale in xyz position of world coordinate
   USE_MASK: False
 

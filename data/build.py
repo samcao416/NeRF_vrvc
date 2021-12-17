@@ -16,8 +16,6 @@ def make_ray_data_loader(cfg, is_train=True): #TODO
 
     if cfg.DATASETS.TYPE == 'syn':
         datasets = Syn_Dataset(cfg)
-    elif cfg.DATASETS.TYPE == 'indoor':
-        datasets = Indoor_Dataset(cfg)
     else:
         print('Error: undefined dataset type: ' + cfg.DATASETS.TYPE)
     #Then get into ray_dataset.py
@@ -35,8 +33,7 @@ def make_ray_data_loader_view(cfg, is_train=False):
 
     if cfg.DATASETS.TYPE == 'syn':
         datasets = Syn_Dataset_View(cfg)
-    elif cfg.DATASETS.TYPE == 'indoor':
-        datasets = Indoor_Dataset_View(cfg)
+
     else:
         print('Error: undefined dataset type: ' + cfg.DATASETS.TYPE)
     #Then get into ray_dataset.py
@@ -56,8 +53,7 @@ def make_ray_data_loader_render(cfg, is_train=False):
     #datasets = CryoET_Dataset_Render(cfg)
     if cfg.DATASETS.TYPE == 'syn':
         datasets = Syn_Dataset_Render(cfg)
-    elif cfg.DATASETS.TYPE == 'indoor':
-        datasets = Indoor_Dataset_Render(cfg)
+
     else:
         print('Error: undefined dataset type: ' + cfg.DATASETS.TYPE)
     #Then get into ray_dataset.py

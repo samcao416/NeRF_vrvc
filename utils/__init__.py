@@ -4,10 +4,10 @@
 @contact: sherlockliao01@gmail.com
 """
 
-from .dimension_kernel import Trigonometric_kernel, Gaussian_Kernel
-from .ray_sampling import ray_sampling, ray_sampling_syn, generate_rays_syn
+from .dimension_kernel import Trigonometric_kernel
+from .ray_sampling import ray_sampling_syn, generate_rays_syn, ray_sampling_mip, generate_rays_mip
 from .batchify_rays import batchify_ray
 from .vis_density import vis_density
 from .sample_pdf import sample_pdf
-from .high_dim_dics import add_two_dim_dict, add_three_dim_dict
-from .render_helpers import *
+#from .high_dim_dics import add_two_dim_dict, add_three_dim_dict
+#from .render_helpers import *

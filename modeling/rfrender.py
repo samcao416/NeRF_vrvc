@@ -26,7 +26,6 @@ class RFRender(nn.Module):
         self.sample_method = cfg.MODEL.SAMPLE_METHOD
 
         # Related to input of networks
-        self.pose_refinement=cfg.MODEL.POSE_REFINEMENT
         self.use_dir = cfg.MODEL.USE_DIR
         self.camera_num = camera_num
 
@@ -74,11 +73,6 @@ class RFRender(nn.Module):
 
         # [x,y,z,dx,dy,dz]
         ray_size = 6
-        
-        if self.pose_refinement and not rendering:
-            rays_o, rays_d=rays[:,:3],rays[:,3:6]
-            rays_o, rays_d=self.cam_pose.forward(rays_o, rays_d, rays_camera_id) #o:origin d:direction
-            rays = torch.cat([rays_o, rays_d], dim=1)
 
         K = rays.size(0)
         ray_mask = None 
@@ -100,9 +94,8 @@ class RFRender(nn.Module):
             L2 = self.fine_ray_sample
 
             # Detach if we do not need to refine camera pose
-            if not self.pose_refinement:
-                sampled_rays_coarse_t = sampled_rays_coarse_t.detach()
-                sampled_rays_coarse_xyz = sampled_rays_coarse_xyz.detach()
+            sampled_rays_coarse_t = sampled_rays_coarse_t.detach()
+            sampled_rays_coarse_xyz = sampled_rays_coarse_xyz.detach()
 
             # Canonical NeRF 
             colors, density = self.spacenet(sampled_rays_coarse_xyz, rays_t)
@@ -122,9 +115,8 @@ class RFRender(nn.Module):
             samples_fine_xyz = z_vals_fine.unsqueeze(-1)*rays_t[:,3:6].unsqueeze(1) + rays_t[:,:3].unsqueeze(1)  # (N,L1+L2,3)
 
             # Detach if we do not need to refine camera pose
-            if not self.pose_refinement:
-                samples_fine_xyz = samples_fine_xyz.detach()
-                z_vals_fine = z_vals_fine.detach()
+            samples_fine_xyz = samples_fine_xyz.detach()
+            z_vals_fine = z_vals_fine.detach()
             
             # Canonical NeRF 
             colors, density = self.spacenet_fine(samples_fine_xyz, rays_t)

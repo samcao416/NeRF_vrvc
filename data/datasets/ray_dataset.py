@@ -6,7 +6,7 @@ from PIL import Image
 import torchvision
 import random
 from .frame_dataset import SynImageDataset
-from utils import ray_sampling_syn, generate_rays_syn
+from utils import ray_sampling_syn, generate_rays_syn, ray_sampling_mip, generate_rays_mip
 
 class Syn_Dataset(torch.utils.data.Dataset):
     def __init__(self, cfg):

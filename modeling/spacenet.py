@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch import nn
 import time
 
-from utils import Trigonometric_kernel, Gaussian_Kernel
+from utils import Trigonometric_kernel
 
 class SpaceNet(nn.Module):
 

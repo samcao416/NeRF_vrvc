@@ -7,3 +7,4 @@ dist
 torchlib.egg-info
 logs
 configs
+tests

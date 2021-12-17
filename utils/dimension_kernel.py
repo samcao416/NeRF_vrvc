@@ -74,44 +74,6 @@ class Trigonometric_kernel:
     def calc_dim(self, dims=0): #? dims的意义是啥
         return self.out_ch
 
-# class Gaussian_Kernel:
-
-#     def __init__(self, L, input_dim, scale=1):
-
-#         self.scale = scale
-#         self.input_dim =  input_dim
-#         self.L = L
-
-#         B = torch.normal(0, scale, size = (input_dim, L))
-
-#         self.embed_fn = lambda x, eo = B : torch.cat([torch.sin((2*math.pi*x) @ B), torch.cos((2*math.pi*x) @ B)], dim = -1)
-
-#     def __call__(self, x):
-#         return self.embed_fn(x)
-
-#     def calc_dim(self, dims=0):
-#         return 2
-
-class Gaussian_Kernel(nn.Module): 
-
-    def __init__(self, dim_in, dim_embed, ffm_scale=16., trainable=False):
-        super(Gaussian_Kernel, self).__init__()
-        self.dim_in = dim_in
-        self.dim_out = dim_embed * 2
-
-        B = torch.normal(0., ffm_scale, size=(dim_embed, dim_in))
-        if trainable:
-            self.B = nn.Parameter(B)
-        else:
-            self.register_buffer('B', B) 
-    def calc_dim(self, dims=0):
-        return self.dim_out
-
-    def __call__(self, x):
-        # print(x.shape)
-        # print(self.B.shape)
-        y = torch.matmul(x, self.B.T)
-        return torch.cat([torch.sin(y), torch.cos(y)], dim=-1)
 
 
 

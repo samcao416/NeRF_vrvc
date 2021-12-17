@@ -25,8 +25,7 @@ _C.MODEL.BOARDER_WEIGHT = 1e10
 _C.MODEL.SAME_SPACENET = False
 _C.MODEL.BACKBONE_DIM = 256 
 
-_C.MODEL.TKERNEL_INC_RAW = True #? 把input一起输入到positional encoding里
-_C.MODEL.POSE_REFINEMENT = False
+_C.MODEL.TKERNEL_INC_RAW = True #把input一起输入到positional encoding里
 
 _C.MODEL.USE_DIR = True
 
@@ -46,6 +45,7 @@ _C.DATASETS.TYPE = 'syn'
 _C.DATASETS.TMP_RAYS = "rays_tmp"
 # List of the dataset names for testing, as present in paths_catalog.py
 
+_C.DATASETS.PE_METHOD = 'origin' # origin or mip
 _C.DATASETS.USE_MASK = False
 _C.DATASETS.FACTOR = 1 # Downsample rate
 _C.DATASETS.FIXED_NEAR = -1.0
