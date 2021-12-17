@@ -24,7 +24,6 @@ torch.autograd.set_detect_anomaly(True)
 torch.set_default_dtype(torch.float32)
 
 cfg.merge_from_file(args.config)
-#cfg.MODEL.POSE_REFINEMENT = False
 cfg.MODEL.USE_DEFORM_VIEW = False
 cfg.DATASETS.FACTOR = args.downsample_rate
 cfg.rendering = True
