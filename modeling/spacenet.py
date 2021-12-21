@@ -100,6 +100,8 @@ class SpaceNet(nn.Module):
         L = pos[0].shape[1] #sample_num
         # Positional encoding
         pos = integrated_pos_enc(pos, self.min_deg_point, self.max_deg_point) # N, L, (max - min) * 6
+        pos_dim = pos.shape[2]
+        pos = pos.reshape(-1, pos_dim)
         dirs = pos_enc(dirs, min_deg = 0, max_deg = self.deg_view, append_identity = True) # N , 3 + (max-min)*6
         # 8-layer MLP for density
         x = self.stage1(pos)
