@@ -96,7 +96,7 @@ class RFRender(nn.Module):
             # Detach if we do not need to refine camera pose
             sampled_rays_coarse_t = sampled_rays_coarse_t.detach()
             sampled_rays_coarse_xyz = sampled_rays_coarse_xyz.detach()
-
+            
             # Canonical NeRF 
             colors, density = self.spacenet(sampled_rays_coarse_xyz, rays_t)
 
