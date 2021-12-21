@@ -77,7 +77,7 @@ class SpaceNet(nn.Module):
 
     '''
     INPUT
-    pos: 3D positions (N,L,c_pos) or (N,c_pos)
+    pos: 3D positions (N,L,3)
     rays: corresponding rays  (N,6)
 
     OUTPUT
@@ -91,18 +91,21 @@ class SpaceNet(nn.Module):
     def forward(self, pos, rays):
 
         rgbs = None
+        L = pos[0].shape[1] #sample_num
         if rays is not None and self.use_dir:
 
             dirs = rays[...,3:6] 
             # Normalization for a better performance when training, may not necessary
             dirs = dirs/torch.norm(dirs,dim=-1,keepdim = True)
+            dirs = dirs.unsqueeze(1).repeat(1, L, 1)
+            dirs = dirs.reshape([-1, 3])
 
-        L = pos[0].shape[1] #sample_num
+        
         # Positional encoding
         pos = integrated_pos_enc(pos, self.min_deg_point, self.max_deg_point) # N, L, (max - min) * 6
         pos_dim = pos.shape[2]
         pos = pos.reshape(-1, pos_dim)
-        dirs = pos_enc(dirs, min_deg = 0, max_deg = self.deg_view, append_identity = True) # N , 3 + (max-min)*6
+        dirs = pos_enc(dirs, min_deg = 0, max_deg = self.deg_view, append_identity = True) # N*L , 3 + (max-min)*6
         # 8-layer MLP for density
         x = self.stage1(pos)
         x = self.stage2(torch.cat([x,pos], dim=1))
