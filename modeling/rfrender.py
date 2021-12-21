@@ -36,8 +36,8 @@ class RFRender(nn.Module):
         # Ray Sampling Methods
         if cfg.MODEL.SAMPLE_METHOD == 'NEAR_FAR':
             self.rsp_coarse = RaySamplePoint_Mip(sample_num = self.coarse_ray_sample)   # use near far to sample points on rays
-        elif cfg.MODEL.SAMPLE_METHOD == 'BBOX':
-            self.rsp_coarse = RaySamplePoint(self.coarse_ray_sample)            # use bounding box to define point sampling ranges on rays
+        #elif cfg.MODEL.SAMPLE_METHOD == 'BBOX':
+        #    self.rsp_coarse = RaySamplePoint(self.coarse_ray_sample)            # use bounding box to define point sampling ranges on rays
 
         # NeRF Network 
         self.spacenet = SpaceNet(cfg)
@@ -67,7 +67,7 @@ class RFRender(nn.Module):
     depths:  depth of each ray (N,1) 
 
     '''
-    def forward(self, rays, view_dirs, radii, lossmult, bboxes=None, near_far=None, rendering=False):
+    def forward(self, rays, radii, lossmult, bboxes=None, near_far=None, rendering=False):
         
         results = {} 
 
@@ -81,11 +81,6 @@ class RFRender(nn.Module):
             assert near_far is not None, 'require near_far as input '
             sampled_rays_coarse_t, sampled_rays_coarse_xyz  = self.rsp_coarse.forward(rays, radii, near_far = near_far)
             rays_t = rays
-        else:
-            sampled_rays_coarse_t, sampled_rays_coarse_xyz, ray_mask  = self.rsp_coarse.forward(rays, bboxes)
-            sampled_rays_coarse_t = sampled_rays_coarse_t[ray_mask]
-            sampled_rays_coarse_xyz = sampled_rays_coarse_xyz[ray_mask]
-            rays_t = rays[ray_mask]
 
         if rays_t.size(0) > 1:
         
@@ -98,7 +93,7 @@ class RFRender(nn.Module):
             sampled_rays_coarse_xyz = sampled_rays_coarse_xyz.detach()
 
             # Canonical NeRF 
-            colors, density = self.spacenet(sampled_rays_coarse_xyz, rays_t)
+            colors, density = self.spacenet(sampled_rays_coarse_xyz, rays_t )
 
             # Set point density behind image plane into zero
             density[sampled_rays_coarse_t[:,:,0]<0,:] = 0.0

@@ -107,19 +107,19 @@ def do_train(
             model.train()
             optimizer.zero_grad()
 
-            rays, colors, near_far, view_dirs, radii, lossmult = batch 
+            rays, colors, near_far, radii, lossmult = batch 
 
             rays = rays.cuda()
             colors = colors.cuda()
             #bboxes = bboxes.cuda()
             near_far = near_far.cuda()
-            view_dirs = view_dirs.cuda()
+
             radii = radii.cuda()
             lossmult = lossmult.cuda()
 
             loss = 0
            
-            results = model(rays, view_dirs, radii, lossmult, near_far=near_far)
+            results = model(rays, radii, lossmult, near_far=near_far)
             ray_mask = results['ray_mask']
 
             coarse_color = results['coarse_color'][ray_mask]

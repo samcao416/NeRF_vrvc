@@ -62,15 +62,13 @@ def ray_sampling_mip(image, pose, focal):
     ray_o = pose[:3, -1].expand(ray_d.shape)
     rays = torch.cat([ray_o, ray_d], dim = -1)
 
-    viewdirs = ray_d / np.linalg.norm(ray_d, axis = -1, keepdims = True)
-
     dx = np.sqrt(torch.sum((ray_d[:-1,:,:] - ray_d[1:,:,:]) ** 2, -1))
     dx = np.concatenate([dx, dx[-2:-1, :]], 0)
     radii = torch.Tensor(dx[..., None] * 2 / np.sqrt(12))
     lossmult = torch.ones_like(ray_o[..., :1])
 
     colors = torch.Tensor(image.reshape(-1,3))
-    return rays, colors, viewdirs.reshape(-1,3), radii.reshape(-1,1), lossmult.reshape(-1,1)
+    return rays, colors, radii.reshape(-1,1), lossmult.reshape(-1,1)
 
 def generate_rays_mip(H, W, pose, focal):
     ii, jj = meshgrid_xy(torch.arange(W), torch.arange(H))

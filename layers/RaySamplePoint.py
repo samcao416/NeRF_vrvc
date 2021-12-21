@@ -62,6 +62,9 @@ def intersection(rays, bbox):
     tlist = tlist.topk(k=2, dim=-1)
 
     return tlist[0]
+
+
+
 def conical_frustum_to_gaussian(d, t0, t1, base_radius, diag, stable = True):
     if stable:
       mu = (t0 + t1) / 2
@@ -103,6 +106,7 @@ def lift_gaussian(d, t_mean, t_var, r_var, diag):
         xy_cov = r_var[..., None, None] * null_outer[..., None, :, :]
         cov = t_cov + xy_cov
         return mean, cov
+
 def cast_rays(t_vals, rays, radii, ray_shape, diag = True):
     origins = rays[:,0:3]
     t0 = t_vals[..., :-1]
@@ -290,7 +294,7 @@ class RaySamplePoint_Mip(nn.Module):
         else:
             t_vals = torch.broadcast_to(t_vals, [batch_size, self.sample_num + 1])
         means, covs = cast_rays(t_vals, rays, radii, self.ray_shape)
-        return t_vals, (means, covs)
+        return t_vals, (means, covs) # [batch_size, sample_num + 1], ([batch_size, sample_num, 3], [batch_size, sample_num, 3])
 
     def set_coarse_sample_point(self, a):
         self.sample_num = a
