@@ -6,10 +6,10 @@ from torch import nn
 import math
 
 from utils import Trigonometric_kernel, sample_pdf
-from layers.RaySamplePoint import RaySamplePoint, RaySamplePoint_Near_Far, RaySamplePoint_Mip
+from layers.RaySamplePoint import RaySamplePoint, RaySamplePoint_Near_Far, RaySamplePoint_Mip, ResamplePointMip
 from .spacenet import SpaceNet
 
-from layers.render_layer import VolumeRenderer, gen_weight, Projector, AlphaBlender
+from layers.render_layer import VolumeRenderer, VolumeRendererMip, gen_weight, Projector, AlphaBlender
 from layers.camera_transform import CameraTransformer, TiltRefiner
 import time
 
@@ -36,6 +36,7 @@ class RFRender(nn.Module):
         # Ray Sampling Methods
         if cfg.MODEL.SAMPLE_METHOD == 'NEAR_FAR':
             self.rsp_coarse = RaySamplePoint_Mip(sample_num = self.coarse_ray_sample)   # use near far to sample points on rays
+            self.rsp_fine   = ResamplePointMip(sample_num=self.fine_ray_sample)
         #elif cfg.MODEL.SAMPLE_METHOD == 'BBOX':
         #    self.rsp_coarse = RaySamplePoint(self.coarse_ray_sample)            # use bounding box to define point sampling ranges on rays
 
@@ -50,8 +51,8 @@ class RFRender(nn.Module):
 
         # Volume Rendering Method 
         if cfg.MODEL.BLENDING_SCHEME == "VOLUME RENDERING":
-            self.volume_render = VolumeRenderer(boarder_weight = cfg.MODEL.BOARDER_WEIGHT)
-
+            #self.volume_render = VolumeRenderer(boarder_weight = cfg.MODEL.BOARDER_WEIGHT)
+            self.volume_render = VolumeRendererMip()
         self.maxs = None
         self.mins = None
 
@@ -89,18 +90,21 @@ class RFRender(nn.Module):
             L2 = self.fine_ray_sample
 
             # Detach if we do not need to refine camera pose
-            sampled_rays_coarse_t = sampled_rays_coarse_t.detach()
-            sampled_rays_coarse_xyz = sampled_rays_coarse_xyz.detach()
-
+            sampled_rays_coarse_t = sampled_rays_coarse_t.detach() # N, L + 1
+            sampled_rays_coarse_xyz = sampled_rays_coarse_xyz.detach() # N, L, 3
+            
             # Canonical NeRF 
             colors, density = self.spacenet(sampled_rays_coarse_xyz, rays_t )
 
+            # Volume Rendering
+            color_0, depth_0, acc_0, weights_0 = self.volume_render(density, colors, sampled_rays_coarse_t, rays_t[:, 3:6])
+
+            '''
             # Set point density behind image plane into zero
             density[sampled_rays_coarse_t[:,:,0]<0,:] = 0.0
 
-            # Volume Rendering
-            color_0, depth_0, acc_0, weights_0 = self.volume_render(sampled_rays_coarse_t, colors, density)
-
+            
+            
             # Importance Sampling
             z_samples = sample_pdf(sampled_rays_coarse_t.squeeze(), weights_0.squeeze()[...,1:-1], N_samples = self.fine_ray_sample)
             z_samples = z_samples.detach()   # (N,L)
@@ -112,16 +116,17 @@ class RFRender(nn.Module):
             # Detach if we do not need to refine camera pose
             samples_fine_xyz = samples_fine_xyz.detach()
             z_vals_fine = z_vals_fine.detach()
-            
+            '''
+            sampled_rays_fine_t, sampled_rays_fine_xyz = self.rsp_fine.forward(rays_t, radii, weights_0, sampled_rays_coarse_t)
             # Canonical NeRF 
-            colors, density = self.spacenet_fine(samples_fine_xyz, rays_t)
+            colors, density = self.spacenet_fine(sampled_rays_fine_xyz, rays_t)
             #print("colors shape: ", colors.shape) #[Batch_size, L1 + L2, 3]
 
             # Set point density behind image plane into zero
-            density[z_vals_fine < 0] = 0
+            #density[z_vals_fine < 0] = 0
 
             # Volume Rendering
-            color, depth, acc, weights = self.volume_render(z_vals_fine.unsqueeze(-1), colors, density)
+            color, depth, acc, weights = self.volume_render(density, colors, sampled_rays_fine_t, rays_t[:, 3:6])
             
             C = color.shape[-1]
         

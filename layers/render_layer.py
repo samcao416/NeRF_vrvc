@@ -1,4 +1,5 @@
 import torch
+from torch._C import device
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -56,8 +57,6 @@ class VolumeRenderer(nn.Module):
         color = torch.sum(torch.sigmoid(rgb) * weights, dim=1) #[N, 3]
         depth = torch.sum(weights * depth, dim=1)   # [N, 1]
         acc_map = torch.sum(weights, dim = 1) # [N, 1]
-        #print('in render_layer.py, color shape is: ', color.shape)
-        #print('acc_map shape is: ', acc_map.shape)
 
         return color, depth, acc_map, weights
     
@@ -120,6 +119,59 @@ class AlphaBlender(nn.Module):
 
         color = torch.sum(torch.sigmoid(color) * alphas, dim=1) #[N, 3]
         depth = torch.sum(alphas * depth, dim=1)   # [N, 1]
-        acc_map = torch.sum(alphas, dim = 1) #
+        acc_map = torch.sum(alphas, dim = 1) # [N, 1]
         
         return color, depth, acc_map, alphas
+
+class VolumeRendererMip(nn.Module):
+    def __init__(self, 
+                 white_bg = False,
+                 randomized = True, 
+                 density_noise: float = 1.,
+                 density_bias:  float = -1.,
+                 rgb_padding:   float = 0.0001):
+        super(VolumeRendererMip, self).__init__()
+        self.white_bg = white_bg
+        self.density_noise = density_noise
+        self.density_bias  = density_bias
+        self.rgb_padding   = rgb_padding
+        self.randomized    = randomized
+
+    def forward(self, density, rgbs, t_vals, dirs):
+        if self.randomized and self.density_noise > 0:
+            density += self.density_noise * torch.randn(
+                *(density.shape), dtype = density.dtype, device = density.device
+            ) # N, L, 1
+        rgbs = torch.sigmoid(rgbs) # N, L, 3
+
+        density = F.softplus(density + self.density_bias) # N, L, 1
+
+        t_mids = 0.5 * (t_vals[..., :-1] + t_vals[..., 1:]) # N, L
+        t_dists = t_vals[..., 1:] - t_vals[..., :-1] # N, L
+        delta = t_dists * torch.linalg.norm(dirs[..., None, :], dim = -1) # N, L
+        print("Line 152:", t_mids.shape, t_dists.shape, delta.shape)
+        #Note that we're quietly turning density from [..., 0] to [...].
+        density_delta = density[..., 0] * delta # N, L
+
+        alpha = 1 - torch.exp(-density_delta) # N, L
+        trans = torch.exp(-torch.cat([
+            torch.zeros_like(density_delta[..., :1]),
+            torch.cumsum(density_delta[..., :-1], dim = -1)
+        ],
+            dim = -1)) # N, L
+        weights = alpha * trans # N, L
+
+        comp_rgb = (weights[..., None] * rgbs).sum(dim = -2) # N, 3
+        acc = weights.sum(dim = -1) # N,
+        depth = (weights * t_mids).sum(dim = -1) / acc
+        depth = torch.clip(
+            torch.nan_to_num(depth, float('inf')), t_vals[:, 0], t_vals[:, -1]
+        ) # N,
+        if self.white_bg:
+            comp_rgb = comp_rgb + (1. - acc[..., None])
+
+        comp_rgb = comp_rgb.unsqueeze(-1) # N, L, 3
+        depth = depth.unsqueeze(-1) # N, 1
+        acc = acc.unsqueeze(-1) # N, 1
+        weights = weights.unsqueeze(-1) # N, L, 1
+        return comp_rgb, depth, acc, weights

@@ -15,16 +15,6 @@ class SpaceNet(nn.Module):
 
         self.use_dir = cfg.MODEL.USE_DIR
 
-        #self.tri_kernel_pos = Trigonometric_kernel(L=10, include_input = cfg.MODEL.TKERNEL_INC_RAW)
-        #if self.use_dir:
-        #    self.tri_kernel_dir = Trigonometric_kernel(L=4, include_input = cfg.MODEL.TKERNEL_INC_RAW)
-#
-        #self.pos_dim = self.tri_kernel_pos.calc_dim(3)
-        #if self.use_dir:
-        #    self.dir_dim = self.tri_kernel_dir.calc_dim(3)
-        #else:
-        #    self.dir_dim = 0
-
         backbone_dim = cfg.MODEL.BACKBONE_DIM
         head_dim = int(backbone_dim / 2)
 
@@ -34,7 +24,6 @@ class SpaceNet(nn.Module):
 
         # 4-layer MLP for density feature
         self.stage1 = nn.Sequential(
-                    #nn.Linear(self.pos_dim, backbone_dim),
                     nn.LazyLinear(backbone_dim),
                     nn.ReLU(inplace=True),
                     nn.Linear(backbone_dim, backbone_dim),
@@ -46,7 +35,6 @@ class SpaceNet(nn.Module):
                 )
         # 4-layer MLP for density feature with a skipped input and stage1 output
         self.stage2 = nn.Sequential(
-                    #nn.Linear(backbone_dim+self.pos_dim, backbone_dim),
                     nn.LazyLinear(backbone_dim),
                     nn.ReLU(inplace=True),
                     nn.Linear(backbone_dim, backbone_dim),
@@ -57,13 +45,10 @@ class SpaceNet(nn.Module):
         # 1-layer MLP for density
         self.density_net = nn.Sequential(
                     nn.Linear(backbone_dim, 1),
-                    # density value should be more than zero
-                    # nn.ReLU(inplace=True)
                 )
         # 2-layer MLP for rgb
         self.rgb_net = nn.Sequential(
                     nn.ReLU(inplace=True),
-                    #nn.Linear(backbone_dim+self.dir_dim, head_dim),
                     nn.LazyLinear(head_dim),
                     nn.ReLU(inplace=True),
                     nn.Linear(head_dim, 3)
