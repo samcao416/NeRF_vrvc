@@ -54,9 +54,9 @@ def evaluator(val_dataset, model, loss_fn, swriter, epoch):
 
         loss_map = (color_gt-color_img) ** 2
         loss_map = torch.mean(loss_map, dim=2, keepdim=True) #TODO:
-        print("In evaluator:", color_img.shape, loss_map.shape, results['ray_mask'].shape)
-        #loss_map[~results['ray_mask'][..., 0].reshape(loss_map.size(0),loss_map.size(1),loss_map.size(2))] = 0
-        loss_map[~results['ray_mask'][..., 0].reshape(color_img.size(0),color_img.size(1),color_img.size(2))] = 0
+        
+        loss_map[~results['ray_mask'][..., 0].reshape(loss_map.size(0),loss_map.size(1),loss_map.size(2))] = 0
+        #loss_map[~results['ray_mask'][..., 0].reshape(color_img.size(0),color_img.size(1),color_img.size(2))] = 0
         loss_map = loss_map / (loss_map.max() - loss_map.min())
         swriter.add_image('fine/loss_map', loss_map.permute(2,0,1), epoch)
 
@@ -123,11 +123,11 @@ def do_train(
             loss = 0
            
             results = model(rays, radii, lossmult, near_far=near_far)
-            ray_mask = results['ray_mask'] # N, 3, 1
+            ray_mask = results['ray_mask'] # N, 3
             
             coarse_color = results['coarse_color'][ray_mask]
             fine_color = results['fine_color'][ray_mask]
-            colors = colors.unsqueeze(-1)
+            #colors = colors.unsqueeze(-1)
             colors = colors[ray_mask]
 
             loss1 = loss_fn(coarse_color, colors)

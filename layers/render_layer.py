@@ -170,7 +170,7 @@ class VolumeRendererMip(nn.Module):
         if self.white_bg:
             comp_rgb = comp_rgb + (1. - acc[..., None])
 
-        comp_rgb = comp_rgb.unsqueeze(-1) # N, L, 3
+        #comp_rgb = comp_rgb.unsqueeze(-1) # N, 3, 1
         depth = depth.unsqueeze(-1) # N, 1
         acc = acc.unsqueeze(-1) # N, 1
         weights = weights.unsqueeze(-1) # N, L, 1

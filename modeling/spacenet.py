@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch import nn
 import time
 
-from utils import Trigonometric_kernel, integrated_pos_enc, pos_enc
+from utils import integrated_pos_enc, pos_enc
 
 class SpaceNet(nn.Module):
 

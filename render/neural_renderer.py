@@ -168,44 +168,44 @@ class NeuralRenderer:
 
             self.image_num += 1
         
-    def render_phase(self, step_num, auto_save=True):
-        
-        # Central camera pose
-        poses, _ = tilt_to_poses(0, 1, 1, up=[0, 1, 0])
-        pose = poses[0]
-
-        height = self.cfg.DATASETS.SAMPLE_HEIGHT
-        up = height / 2
-        down = -height / 2
-
-        for i in range(step_num):
-            print('Rendering image %d / %d' % (i, step_num))
-            
-            depth = up + (down-up) * i / step_num
-
-            phase = self.get_phase(pose, depth)
-            print(phase.shape)
-            # normalize phase
-            phase = torch.nn.functional.normalize(phase, dim=1)
-            print(phase.shape)
-            arg = torch.atan(phase[...,0] / phase[...,1])
-            arg = arg.reshape(self.height, self.width, -1)
-            # Normalize angles to 0 1
-            arg = (arg + math.pi / 2) / math.pi
-            arg = arg.cpu()
-
-            # color = result['fine_color'].reshape(self.height,self.width,-1).cpu()
-            # color = self.postprocessing(color)
-
-            self.images.append(arg)
-
-            if auto_save:
-                self.save_color(arg)
-
-            self.image_num += 1
-
-
-        return
+    #def render_phase(self, step_num, auto_save=True):
+    #    
+    #    # Central camera pose
+    #    poses, _ = tilt_to_poses(0, 1, 1, up=[0, 1, 0])
+    #    pose = poses[0]
+#
+    #    height = self.cfg.DATASETS.SAMPLE_HEIGHT
+    #    up = height / 2
+    #    down = -height / 2
+#
+    #    for i in range(step_num):
+    #        print('Rendering image %d / %d' % (i, step_num))
+    #        
+    #        depth = up + (down-up) * i / step_num
+#
+    #        phase = self.get_phase(pose, depth)
+    #        print(phase.shape)
+    #        # normalize phase
+    #        phase = torch.nn.functional.normalize(phase, dim=1)
+    #        print(phase.shape)
+    #        arg = torch.atan(phase[...,0] / phase[...,1])
+    #        arg = arg.reshape(self.height, self.width, -1)
+    #        # Normalize angles to 0 1
+    #        arg = (arg + math.pi / 2) / math.pi
+    #        arg = arg.cpu()
+#
+    #        # color = result['fine_color'].reshape(self.height,self.width,-1).cpu()
+    #        # color = self.postprocessing(color)
+#
+    #        self.images.append(arg)
+#
+    #        if auto_save:
+    #            self.save_color(arg)
+#
+    #        self.image_num += 1
+#
+#
+    #    return
 
     # Save single color image
     def save_color(self, color, path = None):
