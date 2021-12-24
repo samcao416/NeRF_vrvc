@@ -52,7 +52,7 @@ def evaluator(val_dataset, model, loss_fn, swriter, epoch):
 
         loss_map = (color_gt-color_img) ** 2
         loss_map = torch.mean(loss_map, dim=2, keepdim=True)
-
+        
         loss_map[~results['ray_mask'][..., 0].reshape(loss_map.size(0),loss_map.size(1),loss_map.size(2))] = 0
         loss_map = loss_map / (loss_map.max() - loss_map.min())
         swriter.add_image('fine/loss_map', loss_map.permute(2,0,1), epoch)
@@ -110,15 +110,15 @@ def do_train(
             rays, colors, near_far = batch 
 
             rays = rays.cuda()
-            colors = colors.cuda()
+            colors = colors.cuda() # N, 3
             #bboxes = bboxes.cuda()
             near_far = near_far.cuda()
 
             loss = 0
            
             results = model(rays, near_far=near_far)
-            ray_mask = results['ray_mask']
-
+            ray_mask = results['ray_mask'] # N, 3
+            
             coarse_color = results['coarse_color'][ray_mask]
             fine_color = results['fine_color'][ray_mask]
 

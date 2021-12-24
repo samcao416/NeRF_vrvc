@@ -72,8 +72,7 @@ class SynImageDataset(torch.utils.data.Dataset):
             self.near_fars[:,0] = cfg.DATASETS.FIXED_NEAR
         if cfg.DATASETS.FIXED_FAR != -1:
             self.near_fars[:,1] = cfg.DATASETS.FIXED_FAR
-        
-        print('Near fars are ',self.near_fars)
+
 
     def __len__(self):
         return self.cam_num

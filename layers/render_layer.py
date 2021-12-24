@@ -61,65 +61,65 @@ class VolumeRenderer(nn.Module):
 
         return color, depth, acc_map, weights
     
-class Projector(nn.Module):
-
-    def __init__(self):
-        super(Projector, self).__init__()
-
-    def forward(self, depth, color, density):
-        """
-        N - num rays; L - num samples; 
-        :param depth: torch.tensor, depth for each sample along the ray. [N, L, 1]
-        :param rgb: torch.tensor, raw rgb output from the network. [N, L, 3]
-        :param sigma: torch.tensor, raw density (without activation). [N, L, 1]
-        
-        :return:
-            color: torch.tensor [N, 3]
-            depth: torch.tensor [N, 1]
-        """
-
-        delta = (depth[:, 1:] - depth[:, :-1]).squeeze()  # [N, L-1]
-        #pad = torch.Tensor([1e10],device=delta.device).expand_as(delta[...,:1])
-        pad = 0 * torch.ones(delta[...,:1].size(),device = delta.device)
-        delta = torch.cat([delta, pad], dim=-1)   # [N, L]
-        #TODO: Check
-        alphas = gen_alpha(density, delta).unsqueeze(-1)
-
-        # weights = weights.unsqueeze(-1) # (N, L, 1)
-
-        color = torch.sum(alphas, dim=1) #[N, NUM_CHANNEL]
-        # Expected depth
-        depth = torch.sum(alphas * depth, dim=1) / (color + 1e-5)  # [N, 1]
-        acc_map = color
-        
-        return color, depth, acc_map, alphas
-
-class AlphaBlender(nn.Module):
-    def __init__(self):
-        super(AlphaBlender, self).__init__()
-
-    def forward(self, depth, color, density):
-        """
-        N - num rays; L - num samples; 
-        :param depth: torch.tensor, depth for each sample along the ray. [N, L, 1]
-        :param rgb: torch.tensor, raw rgb output from the network. [N, L, 3]
-        :param sigma: torch.tensor, raw density (without activation). [N, L, 1]
-        
-        :return:
-            color: torch.tensor [N, 3]
-            depth: torch.tensor [N, 1]
-        """
-
-        delta = (depth[:, 1:] - depth[:, :-1]).squeeze()  # [N, L-1]
-        #pad = torch.Tensor([1e10],device=delta.device).expand_as(delta[...,:1])
-        pad = 0*torch.ones(delta[...,:1].size(),device = delta.device)
-        delta = torch.cat([delta, pad], dim=-1)   # [N, L]
-
-        alphas = gen_alpha(density, delta).unsqueeze(-1)    #[N, L, 1]
-        alphas = F.normalize(alphas, p=1, dim=1)
-
-        color = torch.sum(torch.sigmoid(color) * alphas, dim=1) #[N, 3]
-        depth = torch.sum(alphas * depth, dim=1)   # [N, 1]
-        acc_map = torch.sum(alphas, dim = 1) #
-        
-        return color, depth, acc_map, alphas
+#class Projector(nn.Module):
+#
+#    def __init__(self):
+#        super(Projector, self).__init__()
+#
+#    def forward(self, depth, color, density):
+#        """
+#        N - num rays; L - num samples; 
+#        :param depth: torch.tensor, depth for each sample along the ray. [N, L, 1]
+#        :param rgb: torch.tensor, raw rgb output from the network. [N, L, 3]
+#        :param sigma: torch.tensor, raw density (without activation). [N, L, 1]
+#        
+#        :return:
+#            color: torch.tensor [N, 3]
+#            depth: torch.tensor [N, 1]
+#        """
+#
+#        delta = (depth[:, 1:] - depth[:, :-1]).squeeze()  # [N, L-1]
+#        #pad = torch.Tensor([1e10],device=delta.device).expand_as(delta[...,:1])
+#        pad = 0 * torch.ones(delta[...,:1].size(),device = delta.device)
+#        delta = torch.cat([delta, pad], dim=-1)   # [N, L]
+#        #TODO: Check
+#        alphas = gen_alpha(density, delta).unsqueeze(-1)
+#
+#        # weights = weights.unsqueeze(-1) # (N, L, 1)
+#
+#        color = torch.sum(alphas, dim=1) #[N, NUM_CHANNEL]
+#        # Expected depth
+#        depth = torch.sum(alphas * depth, dim=1) / (color + 1e-5)  # [N, 1]
+#        acc_map = color
+#        
+#        return color, depth, acc_map, alphas
+#
+#class AlphaBlender(nn.Module):
+#    def __init__(self):
+#        super(AlphaBlender, self).__init__()
+#
+#    def forward(self, depth, color, density):
+#        """
+#        N - num rays; L - num samples; 
+#        :param depth: torch.tensor, depth for each sample along the ray. [N, L, 1]
+#        :param rgb: torch.tensor, raw rgb output from the network. [N, L, 3]
+#        :param sigma: torch.tensor, raw density (without activation). [N, L, 1]
+#        
+#        :return:
+#            color: torch.tensor [N, 3]
+#            depth: torch.tensor [N, 1]
+#        """
+#
+#        delta = (depth[:, 1:] - depth[:, :-1]).squeeze()  # [N, L-1]
+#        #pad = torch.Tensor([1e10],device=delta.device).expand_as(delta[...,:1])
+#        pad = 0*torch.ones(delta[...,:1].size(),device = delta.device)
+#        delta = torch.cat([delta, pad], dim=-1)   # [N, L]
+#
+#        alphas = gen_alpha(density, delta).unsqueeze(-1)    #[N, L, 1]
+#        alphas = F.normalize(alphas, p=1, dim=1)
+#
+#        color = torch.sum(torch.sigmoid(color) * alphas, dim=1) #[N, 3]
+#        depth = torch.sum(alphas * depth, dim=1)   # [N, 1]
+#        acc_map = torch.sum(alphas, dim = 1) #
+#        
+#        return color, depth, acc_map, alphas

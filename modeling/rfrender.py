@@ -5,17 +5,16 @@ import torch.nn.functional as F
 from torch import nn
 import math
 
-from utils import Trigonometric_kernel, sample_pdf
+from utils import sample_pdf #Trigonometric_kernel, 
 from layers.RaySamplePoint import RaySamplePoint, RaySamplePoint_Near_Far
 from .spacenet import SpaceNet
 
-from layers.render_layer import VolumeRenderer, gen_weight, Projector, AlphaBlender
-from layers.camera_transform import CameraTransformer, TiltRefiner
-import time
+from layers.render_layer import VolumeRenderer#, gen_weight, Projector, AlphaBlender
+from layers.camera_transform import CameraTransformer
+
 
 import copy
 
-import pdb
 class RFRender(nn.Module):
 
     def __init__(self, cfg, camera_num): #camera_num is the number of images
