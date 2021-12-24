@@ -20,7 +20,7 @@ import math
 def evaluator(val_dataset, model, loss_fn, swriter, epoch):
     
     model.eval()
-    rays, colors, image, near_far = val_dataset[0]
+    rays, colors, image, near_far, radii, lossmult = val_dataset[0]
 
     color_gt = image.cuda()
 
@@ -28,9 +28,11 @@ def evaluator(val_dataset, model, loss_fn, swriter, epoch):
     colors = colors.cuda()
     #bbox = bbox.cuda()
     near_far = near_far.cuda()
+    radii = radii.cuda()
+    lossmult = lossmult.cuda()
 
     with torch.no_grad():
-        results = batchify_ray(model, rays, near_far=near_far)
+        results = batchify_ray(model, rays, radii, lossmult, near_far=near_far)
         H, W, C = color_gt.shape
         color_img = results['fine_color'].reshape(H, W, C)
         depth_img = results['fine_depth'].reshape(H, W, 1)
@@ -51,9 +53,10 @@ def evaluator(val_dataset, model, loss_fn, swriter, epoch):
         swriter.add_image('coarse/alpha', acc_map_0.permute(2,0,1), epoch)
 
         loss_map = (color_gt-color_img) ** 2
-        loss_map = torch.mean(loss_map, dim=2, keepdim=True)
-
-        loss_map[~results['ray_mask'][..., 0].reshape(loss_map.size(0),loss_map.size(1),loss_map.size(2))] = 0
+        loss_map = torch.mean(loss_map, dim=2, keepdim=True) #TODO:
+        print("In evaluator:", color_img.shape, loss_map.shape, results['ray_mask'].shape)
+        #loss_map[~results['ray_mask'][..., 0].reshape(loss_map.size(0),loss_map.size(1),loss_map.size(2))] = 0
+        loss_map[~results['ray_mask'][..., 0].reshape(color_img.size(0),color_img.size(1),color_img.size(2))] = 0
         loss_map = loss_map / (loss_map.max() - loss_map.min())
         swriter.add_image('fine/loss_map', loss_map.permute(2,0,1), epoch)
 
@@ -110,7 +113,7 @@ def do_train(
             rays, colors, near_far, radii, lossmult = batch 
 
             rays = rays.cuda()
-            colors = colors.cuda()
+            colors = colors.cuda() # N, 3
             #bboxes = bboxes.cuda()
             near_far = near_far.cuda()
 
@@ -120,11 +123,11 @@ def do_train(
             loss = 0
            
             results = model(rays, radii, lossmult, near_far=near_far)
-            ray_mask = results['ray_mask']
-
+            ray_mask = results['ray_mask'] # N, 3, 1
+            
             coarse_color = results['coarse_color'][ray_mask]
             fine_color = results['fine_color'][ray_mask]
-
+            colors = colors.unsqueeze(-1)
             colors = colors[ray_mask]
 
             loss1 = loss_fn(coarse_color, colors)

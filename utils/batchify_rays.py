@@ -1,10 +1,10 @@
 import torch
 
 
-def batchify_ray(model, rays, bboxes = None, near_far=None, chuncks = 1024*7):
+def batchify_ray(model, rays, radii, lossmult, bboxes = None, near_far=None, chuncks = 1024*7):
     N = rays.size(0)
     if N <chuncks:
-        return model(rays, bboxes,near_far =near_far)
+        return model(rays, radii, lossmult, near_far=near_far)
     else:
         rays = rays.split(chuncks, dim=0)
         if bboxes is not None:
@@ -23,7 +23,7 @@ def batchify_ray(model, rays, bboxes = None, near_far=None, chuncks = 1024*7):
         ray_masks = []
 
         for i in range(len(rays)):
-            results = model(rays[i], bboxes[i], near_far = near_far[i])
+            results = model(rays[i], radii[i], lossmult[i], bboxes[i], near_far = near_far[i])
             colors[0].append(results['coarse_color'])
             depths[0].append(results['coarse_depth'])
             accs[0].append(results['coarse_acc'])

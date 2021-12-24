@@ -61,6 +61,7 @@ def ray_sampling_mip(image, pose, focal):
     ray_d = torch.sum(dirs[..., None, :] * pose[:3, :3], dim = -1)
     ray_o = pose[:3, -1].expand(ray_d.shape)
     rays = torch.cat([ray_o, ray_d], dim = -1)
+    rays = rays.reshape(-1,6)
 
     dx = np.sqrt(torch.sum((ray_d[:-1,:,:] - ray_d[1:,:,:]) ** 2, -1))
     dx = np.concatenate([dx, dx[-2:-1, :]], 0)

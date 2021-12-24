@@ -54,7 +54,6 @@ class Syn_Dataset(torch.utils.data.Dataset):
                     continue
                 
                 rays, colors, radii, lossmult = ray_sampling_mip(image, poses, focal) #get into ray_sampling.py
-
                 near_fars_tmp.append(near_far.repeat(rays.size(0), 1))
                 rays_tmp.append(rays) #rays: H*W, 6
                 colors_tmp.append(colors) #colors: H*W, 3
@@ -64,7 +63,7 @@ class Syn_Dataset(torch.utils.data.Dataset):
             self.rays = torch.cat(rays_tmp, 0) # (N * H * W, 6)
             self.colors = torch.cat(colors_tmp, 0) #(N * H * W, 3)
             self.radii = torch.cat(radii_tmp, 0) #(N * H * W, 1)
-            self.lossmult = torch.cat(lossmult, 0) #(N * H * W, 1)
+            self.lossmult = torch.cat(lossmult_tmp, 0) #(N * H * W, 1)
             self.near_fars = torch.cat(near_fars_tmp, 0)
 
             torch.save(self.rays, os.path.join(tmp_ray_path, 'rays.pt'))
@@ -79,6 +78,7 @@ class Syn_Dataset(torch.utils.data.Dataset):
             self.near_fars = torch.load(os.path.join(tmp_ray_path, 'near_fars.pt'), map_location = 'cpu')
             self.radii = torch.load(os.path.join(tmp_ray_path, 'radii.pt'), map_location = 'cpu')
             self.lossmult = torch.load(os.path.join(tmp_ray_path, 'lossmult.pt'), map_location = 'cpu')
+        
 
     
     #print('Generated %d rays' % self.rays.shape[0])
@@ -118,7 +118,6 @@ class Syn_Dataset(torch.utils.data.Dataset):
 
         print("point clouds saved")
         exit()
-        return 0
 
 
 class Syn_Dataset_View(torch.utils.data.Dataset):

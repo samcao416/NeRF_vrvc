@@ -120,7 +120,7 @@ def cast_rays(t_vals, rays, radii, ray_shape, diag = True):
     means, covs = gaussian_fn(rays[:,3:6], t0, t1, radii, diag)
     means = means + origins[..., None, :]
     return means, covs
-    
+
 def sorted_piecewise_constant_pdf(bins, weights, num_samples, randomized):
     """Piecewise-Constant PDF sampling from sorted bins.
     Args:
@@ -158,7 +158,7 @@ def sorted_piecewise_constant_pdf(bins, weights, num_samples, randomized):
         u = torch.minimum(u, torch.ones_like(u) - torch.finfo(torch.float32).eps)
     else:
         # Match the behavior of jax.random.uniform() by spanning [0, 1-eps].
-        u = torch.linspace(0., 1. - torch.finfo(torch.float32).eps, num_samples)
+        u = torch.linspace(0., 1. - torch.finfo(torch.float32).eps, num_samples, device=cdf.device)
         u = torch.broadcast_to(u, list(cdf.shape[:-1]) + [num_samples])   
     # Identify the location in `cdf` that corresponds to a random sample.
     # The final `True` index in `mask` will be the start of the sampled interval.
@@ -332,13 +332,11 @@ class RaySamplePoint_Mip(nn.Module):
     def forward(self, rays, radii, near_far):
         batch_size = rays.shape[0]
         device = rays.device
-
-        t_vals = torch.linspace(0., 1., setps = self.sample_num + 1, device = device)
+        t_vals = torch.linspace(0., 1., steps = self.sample_num + 1, device = device)
         if self.lindisp:
             t_vals = 1. / (1. / near_far[:,0:1] * (1. - t_vals) + 1. / near_far[:,1:2] * t_vals) # N, sample_num + 1
         else:
             t_vals = near_far[:,0:1] * (1. - t_vals) + near_far[:, 1:2] * t_vals # N, sample_num + 1
-        
         if self.randomized:
             mids = 0.5 * (t_vals[..., 1:] + t_vals[..., :-1])
             upper = torch.cat([mids, t_vals[..., -1:]], -1)
@@ -347,6 +345,7 @@ class RaySamplePoint_Mip(nn.Module):
             t_vals = lower + (upper - lower) * t_rand
         else:
             t_vals = torch.broadcast_to(t_vals, [batch_size, self.sample_num + 1])
+
         means, covs = cast_rays(t_vals, rays, radii, self.ray_shape)
         return t_vals, (means, covs) # [batch_size, sample_num + 1], ([batch_size, sample_num, 3], [batch_size, sample_num, 3])
 

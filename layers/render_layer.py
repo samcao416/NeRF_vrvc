@@ -149,7 +149,7 @@ class VolumeRendererMip(nn.Module):
         t_mids = 0.5 * (t_vals[..., :-1] + t_vals[..., 1:]) # N, L
         t_dists = t_vals[..., 1:] - t_vals[..., :-1] # N, L
         delta = t_dists * torch.linalg.norm(dirs[..., None, :], dim = -1) # N, L
-        print("Line 152:", t_mids.shape, t_dists.shape, delta.shape)
+        
         #Note that we're quietly turning density from [..., 0] to [...].
         density_delta = density[..., 0] * delta # N, L
 

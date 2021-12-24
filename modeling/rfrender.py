@@ -35,8 +35,8 @@ class RFRender(nn.Module):
        
         # Ray Sampling Methods
         if cfg.MODEL.SAMPLE_METHOD == 'NEAR_FAR':
-            self.rsp_coarse = RaySamplePoint_Mip(sample_num = self.coarse_ray_sample)   # use near far to sample points on rays
-            self.rsp_fine   = ResamplePointMip(sample_num=self.fine_ray_sample)
+            self.rsp_coarse = RaySamplePoint_Mip(sample_num = self.coarse_ray_sample, randomized=False)   # use near far to sample points on rays
+            self.rsp_fine   = ResamplePointMip(sample_num=self.fine_ray_sample, randomized=False)
         #elif cfg.MODEL.SAMPLE_METHOD == 'BBOX':
         #    self.rsp_coarse = RaySamplePoint(self.coarse_ray_sample)            # use bounding box to define point sampling ranges on rays
 
@@ -47,7 +47,8 @@ class RFRender(nn.Module):
         if cfg.MODEL.SAME_SPACENET:
             self.spacenet_fine = self.spacenet
         else:
-            self.spacenet_fine = copy.deepcopy(self.spacenet)
+            #self.spacenet_fine = copy.deepcopy(self.spacenet)
+            self.spacenet_fine = SpaceNet(cfg) 
 
         # Volume Rendering Method 
         if cfg.MODEL.BLENDING_SCHEME == "VOLUME RENDERING":
@@ -91,7 +92,7 @@ class RFRender(nn.Module):
 
             # Detach if we do not need to refine camera pose
             sampled_rays_coarse_t = sampled_rays_coarse_t.detach() # N, L + 1
-            sampled_rays_coarse_xyz = sampled_rays_coarse_xyz.detach() # N, L, 3
+            #sampled_rays_coarse_xyz = sampled_rays_coarse_xyz.detach() # N, L, 3
             
             # Canonical NeRF 
             colors, density = self.spacenet(sampled_rays_coarse_xyz, rays_t )
@@ -177,7 +178,6 @@ class RFRender(nn.Module):
             results['fine_color'] = torch.zeros(K,C,device = rays.device)
             results['fine_depth'] = torch.zeros(K,1,device = rays.device)
             results['fine_acc'] = torch.zeros(K,1,device = rays.device)
-
         return results
 
     def set_coarse_sample_point(self, a):
