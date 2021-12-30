@@ -5,7 +5,6 @@ import torch.nn.functional as F
 from torch import nn
 import math
 
-from utils import Trigonometric_kernel, sample_pdf
 from layers.RaySamplePoint import RaySamplePoint, RaySamplePoint_Near_Far, RaySamplePoint_Mip, ResamplePointMip
 from .spacenet import SpaceNet
 

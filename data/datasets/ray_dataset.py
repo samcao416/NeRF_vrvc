@@ -41,7 +41,6 @@ class Syn_Dataset(torch.utils.data.Dataset):
             rays_tmp = []
             colors_tmp = []
             near_fars_tmp = []
-            viewdirs_tmp = []
             radii_tmp = []
             lossmult_tmp = []
 
