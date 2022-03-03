@@ -11,7 +11,7 @@ text = 'This is the program to render FVV, get help by -h.'
 parser = argparse.ArgumentParser(description=text)
 parser.add_argument('-c', '--config', default='', help='set the config file path to render the network')
 parser.add_argument('-g','--gpu', type=int, default=0, help='set gpu id to render the network')
-parser.add_argument('-t','--type', type=str, default='tilt', help='set renderer type, tilt, slice or gt')
+parser.add_argument('-t','--type', type=str, default='linear', help='set renderer type, linear or gt')
 # Rendering setting
 parser.add_argument('-fn', '--frame_number', type=int, default= 41, help='total frame of the video')
 parser.add_argument('-fps','--fps',type=int, default=30, help='fps of FVV')
@@ -36,5 +36,8 @@ renderer.set_save_dir(args.output_name)
 if args.type == 'gt':
     renderer.set_fps(1)
     renderer.render_gt()
+
+if args.type == 'linear':
+    renderer.render_linear()
 
 renderer.save_video()
