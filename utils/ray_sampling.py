@@ -14,7 +14,7 @@ def ray_sampling_syn(image, pose, focal):
         [
             (ii - W * 0.5) / focal,
             -(jj - H * 0.5) / focal,
-            torch.ones_like(ii)
+            -torch.ones_like(ii)
         ],
         dim = -1
     )
@@ -34,7 +34,7 @@ def generate_rays_syn(H, W, pose, focal):
         [
             (ii - W * 0.5) / focal,
             -(jj - H * 0.5) / focal,
-            torch.ones_like(ii)
+            -torch.ones_like(ii)
         ],
         dim = -1
     )
@@ -45,46 +45,46 @@ def generate_rays_syn(H, W, pose, focal):
 
     return rays
 
-def ray_sampling_mip(image, pose, focal):
-    H, W = image.shape[0:2]
-    ii, jj = meshgrid_xy(
-        torch.arange(W),torch.arange(H)
-        )
-    dirs = torch.stack(
-        [
-            (ii - W * 0.5) / focal,
-            -(jj - H * 0.5) / focal,
-            torch.ones_like(ii)
-        ],
-        dim = -1
-    )
-    ray_d = torch.sum(dirs[..., None, :] * pose[:3, :3], dim = -1)
-    ray_o = pose[:3, -1].expand(ray_d.shape)
-    rays = torch.cat([ray_o, ray_d], dim = -1)
+# def ray_sampling_mip(image, pose, focal):
+#     H, W = image.shape[0:2]
+#     ii, jj = meshgrid_xy(
+#         torch.arange(W),torch.arange(H)
+#         )
+#     dirs = torch.stack(
+#         [
+#             (ii - W * 0.5) / focal,
+#             -(jj - H * 0.5) / focal,
+#             -torch.ones_like(ii)
+#         ],
+#         dim = -1
+#     )
+#     ray_d = torch.sum(dirs[..., None, :] * pose[:3, :3], dim = -1)
+#     ray_o = pose[:3, -1].expand(ray_d.shape)
+#     rays = torch.cat([ray_o, ray_d], dim = -1)
 
-    viewdirs = ray_d / np.linalg.norm(ray_d, axis = -1, keepdims = True)
+#     viewdirs = ray_d / np.linalg.norm(ray_d, axis = -1, keepdims = True)
 
-    dx = np.sqrt(torch.sum((ray_d[:-1,:,:] - ray_d[1:,:,:]) ** 2, -1))
-    dx = np.concatenate([dx, dx[-2:-1, :]], 0)
-    radii = dx[..., None] * 2 / np.sqrt(12) 
-    lossmult = torch.ones_like(ray_o[..., :1])
+#     dx = np.sqrt(torch.sum((ray_d[:-1,:,:] - ray_d[1:,:,:]) ** 2, -1))
+#     dx = np.concatenate([dx, dx[-2:-1, :]], 0)
+#     radii = dx[..., None] * 2 / np.sqrt(12) 
+#     lossmult = torch.ones_like(ray_o[..., :1])
 
-    colors = torch.Tensor(image.reshape(-1,3))
-    return rays, colors, viewdirs, radii, lossmult
+#     colors = torch.Tensor(image.reshape(-1,3))
+#     return rays, colors, viewdirs, radii, lossmult
 
-def generate_rays_mip(H, W, pose, focal):
-    ii, jj = meshgrid_xy(torch.arange(W), torch.arange(H))
-    dirs = torch.stack([
-        (ii - W * 0.5) / focal,
-        -(jj - H * 0.5) / focal,
-        torch.ones_like(ii)
-        ],
-        dim = -1
-    )
-    ray_d = torch.sum(dirs[..., None, :] * pose[:3, :3], dim = -1)
-    ray_o = pose[:3, -1].expand(ray_d.shape)
-    rays = torch.cat([ray_o, ray_d], dim = -1)
+# def generate_rays_mip(H, W, pose, focal):
+#     ii, jj = meshgrid_xy(torch.arange(W), torch.arange(H))
+#     dirs = torch.stack([
+#         (ii - W * 0.5) / focal,
+#         -(jj - H * 0.5) / focal,
+#         -torch.ones_like(ii)
+#         ],
+#         dim = -1
+#     )
+#     ray_d = torch.sum(dirs[..., None, :] * pose[:3, :3], dim = -1)
+#     ray_o = pose[:3, -1].expand(ray_d.shape)
+#     rays = torch.cat([ray_o, ray_d], dim = -1)
 
-    return rays
+#     return rays
     
 

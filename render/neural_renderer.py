@@ -41,9 +41,6 @@ class NeuralRenderer:
         self.rendering_path = None
         self.rendering_count = 0
 
-        ## Rendering area (lower bound of x, upper bound of x, lower bound of y, upper bound of y)
-        self.area = [0, 1, 0, 1]
-
         if device is not None:
             torch.cuda.set_device(device)
             self.gpu = device
@@ -114,7 +111,6 @@ class NeuralRenderer:
             rays, near_far = self.dataset.get_gt_rays(camera_id)
 
         rays = rays.cuda()
-        # bbox = bbox.cuda()
         near_far = near_far.cuda()
         with torch.no_grad():
             results = batchify_ray(self.model, rays, near_far=near_far)
@@ -134,24 +130,14 @@ class NeuralRenderer:
 
             return density
     
-    def get_phase(self, pose, depth):
-
-        with torch.no_grad():
-
-            pts = self.dataset.get_pts(pose, depth)
-            rays,_,_ = self.dataset.get_rays(pose=pose)
-            pts = pts.cuda()
-            rays = rays.cuda()
-
-            phase = self.model.get_phase(pts, rays) #TODO: No get_phase in rfrender.py
-            
-            return phase
-
-
     # Get ground truth image from dataset 
     def get_gt(self, camera_id):
-        image, T = self.dataset.get_gt(camera_id)
+        image, pose, focal = self.dataset.get_gt(camera_id)
         return image
+
+    def get_gt_pose(self, camera_id):
+        _, pose, focal = self.dataset.get_gt(camera_id)
+        return pose
 
     def render_gt(self):
         for i in range(self.camera_num):
@@ -168,44 +154,41 @@ class NeuralRenderer:
 
             self.image_num += 1
         
-    def render_phase(self, step_num, auto_save=True):
-        
-        # Central camera pose
-        poses, _ = tilt_to_poses(0, 1, 1, up=[0, 1, 0])
-        pose = poses[0]
+    def render_linear(self):
+        #linear interpolation to generate new poses
+        #interpolate two new poses between each poses
+        gamma = 1 / 3
+        poses = []
+        poses_render = []
+        for i in range(self.camera_num):
+            poses.append(self.get_gt_pose(camera_id = i))
+        poses = np.array(poses)
 
-        height = self.cfg.DATASETS.SAMPLE_HEIGHT
-        up = height / 2
-        down = -height / 2
+        poses_render.append(poses[0])
 
-        for i in range(step_num):
-            print('Rendering image %d / %d' % (i, step_num))
+        for i in range(poses.shape[0] - 1):
+            pose_left = poses[i]
+            pose_right = poses[i + 1]
+            for interpolate_co in range(int(1 / gamma)):
+                novel_pose = pose_left * (1 - (interpolate_co + 1) * gamma) + pose_right * ((interpolate_co + 1) * gamma)
+                poses_render.append(novel_pose)
             
-            depth = up + (down-up) * i / step_num
+        poses_render = np.array(poses_render)
 
-            phase = self.get_phase(pose, depth)
-            print(phase.shape)
-            # normalize phase
-            phase = torch.nn.functional.normalize(phase, dim=1)
-            print(phase.shape)
-            arg = torch.atan(phase[...,0] / phase[...,1])
-            arg = arg.reshape(self.height, self.width, -1)
-            # Normalize angles to 0 1
-            arg = (arg + math.pi / 2) / math.pi
-            arg = arg.cpu()
+        #render images
+        for i in range(poses_render.shape[0]):
+            result = self.get_result(poses_render[i])
 
-            # color = result['fine_color'].reshape(self.height,self.width,-1).cpu()
-            # color = self.postprocessing(color)
+            color = self.color(result)
+            depth = self.depth(result)
+            
+            self.images.append(color)
+            self.depths.append(depth)
 
-            self.images.append(arg)
-
-            if auto_save:
-                self.save_color(arg)
+            self.save_color(color)
+            self.save_depth(depth)
 
             self.image_num += 1
-
-
-        return
 
     # Save single color image
     def save_color(self, color, path = None):

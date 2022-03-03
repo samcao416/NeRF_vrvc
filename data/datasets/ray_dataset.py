@@ -6,7 +6,7 @@ from PIL import Image
 import torchvision
 import random
 from .frame_dataset import SynImageDataset
-from utils import ray_sampling_syn, generate_rays_syn, ray_sampling_mip, generate_rays_mip
+from utils import ray_sampling_syn, generate_rays_syn
 
 class Syn_Dataset(torch.utils.data.Dataset):
     def __init__(self, cfg):
@@ -25,8 +25,6 @@ class Syn_Dataset(torch.utils.data.Dataset):
 
         self.rays = []
         self.colors = []
-        # TODO
-        self.bbox = []
 
         #Check if we have already generated rays
         tmp_ray_path = os.path.join(self.output_dir, self.tmp_rays)
@@ -68,8 +66,6 @@ class Syn_Dataset(torch.utils.data.Dataset):
             self.rays = torch.load(os.path.join(tmp_ray_path, 'rays.pt'), map_location = 'cpu')
             self.colors = torch.load(os.path.join(tmp_ray_path, 'colors.pt'), map_location = 'cpu')
             self.near_fars = torch.load(os.path.join(tmp_ray_path, 'near_fars.pt'), map_location = 'cpu')
-    
-    #print('Generated %d rays' % self.rays.shape[0])
 
     def __len__(self):
         return self.rays.shape[0]
@@ -105,7 +101,6 @@ class Syn_Dataset(torch.utils.data.Dataset):
 
         print("point clouds saved")
         exit()
-        return 0
 
 
 class Syn_Dataset_View(torch.utils.data.Dataset):

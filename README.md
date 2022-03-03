@@ -19,6 +19,7 @@ conda activate nerf    
 conda install pytorch==1.9.0 torchvision torchaudio cudatoolkit=11.1 -c pytorch -c conda-forge
 conda install imageio
 pip install yacs kornia
+pip install imageio-ffmpeg
 pip install tensorboard==2.2.0
 ```
 
@@ -35,6 +36,11 @@ The synthetic datasets can be downloaded from [here](https://drive.google
 - After you can see the PSNR and loss, you can start a new terminal, and `cd [OUTPUT_DIR]` .
 - Run `tensorboard --logdir .` 
 - Now you can watch the PSNR and loss curve as well as the training images in the webpage.
+
+### To Render New Views
+- After the the first checkpoint is saved to the output folder, you can render new views.
+- `cd tools` and run `python renderer.py -c ../configs/hotdog.yml -t linear`
+- Now two types of rendering are provided: `gt` and `linear`, the latter is the default option. `gt` stands for rendering the ground truth view images. `linear` stands for generating new camera poses based on the ground truth views by linear interpolation. By default, two novel views will be interpolated between two consecutive poses. However, the process of sorting ground truth cameras is still under construction. Before that, you'd better sort the cameras by yourself, or the novel views might be disordered (while the results will still be correct).
 
 ## Acknowlegements
 We borrowed some codes from [Multi-view Neural Human Rendering (NHR)](https://github.com/wuminye/NHR).
