@@ -19,6 +19,7 @@ conda activate nerf    
 conda install pytorch==1.9.0 torchvision torchaudio cudatoolkit=11.1 -c pytorch -c conda-forge
 conda install imageio
 pip install yacs kornia
+pip install imageio-ffmpeg
 pip install tensorboard==2.2.0
 ```
 

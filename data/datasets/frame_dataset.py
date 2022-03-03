@@ -40,9 +40,9 @@ class SynImageDataset(torch.utils.data.Dataset):
 
             #load poses
             pose = json_file['frames'][i]['transform_matrix']
-            pose[0][2] = -pose[0][2]
-            pose[1][2] = -pose[1][2]
-            pose[2][2] = -pose[2][2]
+            #pose[0][2] = -pose[0][2]
+            #pose[1][2] = -pose[1][2]
+            #pose[2][2] = -pose[2][2]
             self.poses.append(pose)
             self.exts.append(pose)
 

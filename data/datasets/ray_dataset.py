@@ -6,7 +6,7 @@ from PIL import Image
 import torchvision
 import random
 from .frame_dataset import SynImageDataset
-from utils import ray_sampling_syn, generate_rays_syn, ray_sampling_mip, generate_rays_mip
+from utils import ray_sampling_mip, generate_rays_mip #ray_sampling_syn, generate_rays_syn, 
 
 class Syn_Dataset(torch.utils.data.Dataset):
     def __init__(self, cfg):
@@ -174,8 +174,8 @@ class Syn_Dataset_Render(torch.utils.data.Dataset):
         return image, poses, focal
 
     def get_rays(self, pose):
-        rays  = generate_rays_mip(self.H, self.W, pose, self.focal)
-        return rays, self.near_far.repeat(rays.size(0),1)
+        rays, radii, lossmult = generate_rays_mip(self.H, self.W, pose, self.focal)
+        return rays, self.near_far.repeat(rays.size(0),1), radii, lossmult
 
     def get_gt_rays(self, i):
         image, pose, focal, _ , near_far = self.dataset.get_data(i)
