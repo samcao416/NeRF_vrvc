@@ -15,6 +15,8 @@ class SynImageDataset(torch.utils.data.Dataset):
         dataset_path = cfg.DATASETS.TRAIN
 
         #generate the json path
+        
+        #self.json_path = os.path.join(dataset_path, 'transforms.json')
         self.json_path = os.path.join(dataset_path, 'transforms_train.json')
         f = open(self.json_path)
         json_file = json.load(f)
@@ -29,7 +31,9 @@ class SynImageDataset(torch.utils.data.Dataset):
         self.mask = None
         for i in range(self.cam_num):
             #generate the image file path
-            image_path = os.path.join(dataset_path,json_file['frames'][i]['file_path']) + '.png'
+
+            #image_path = os.path.join(dataset_path,json_file['frames'][i]['file_path'])
+            image_path = os.path.join(dataset_path,json_file['frames'][i]['file_path'] + '.png')
             image = Image.open(image_path)
             if cfg.DATASETS.FACTOR != 1:
                 image = image.resize((image.width // cfg.DATASETS.FACTOR, image.height // cfg.DATASETS.FACTOR))
