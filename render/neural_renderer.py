@@ -6,6 +6,7 @@ import torch
 from data import make_ray_data_loader_render, get_iteration_path_and_iter
 from modeling import build_model
 from utils import batchify_ray
+import json
 import math
 import time
 import copy
@@ -20,7 +21,7 @@ torch.set_default_dtype(torch.float32)
 
 class NeuralRenderer:
 
-    def __init__(self, cfg=None, device=None):
+    def __init__(self, cfg=None, args = None, device=None):
         self.images = []
         self.depths = []
 
@@ -53,7 +54,7 @@ class NeuralRenderer:
 
             # The dictionary save all rendered images and videos
             self.dataset_dir = self.cfg.OUTPUT_DIR
-            self.output_dir = os.path.join(self.cfg.OUTPUT_DIR,'rendered')
+            self.output_dir = os.path.join(self.cfg.OUTPUT_DIR, 'rendered', args.type)
 
             self.dataset, self.model = self.load_dataset_model()
 
@@ -192,7 +193,44 @@ class NeuralRenderer:
             self.save_depth(depth)
 
             self.image_num += 1
+    
+    def render_from_json(self, json_path):
+
+        # read poses from json files
+        if json_path == '':
+            raise ValueError("json path is NONE, try to add --path ")
+        elif not os.path.isfile(json_path):
+            raise ValueError("json file not found, please check again")
+        else:
+            with open(json_path, 'r') as f:
+                transforms = json.load(f)
+        self.height = transforms['h']
+        self.width = transforms['w']
+        poses = []
+
+        for f in transforms['frames']:
+            pose = np.array(f['transform_matrix'], dtype = np.float32)
+            pose = torch.from_numpy(pose)
+            poses.append(pose)
         
+        poses = torch.stack(poses, axis = 0)
+
+        for i in range(poses.shape[0]):
+
+            result = self.get_result(poses[i])
+            
+            color = self.color(result)
+            depth = self.depth(result)
+
+            self.images.append(color)
+            self.depths.append(depth)
+            
+            self.save_color(color)
+            self.save_depth(depth)
+            
+            self.image_num += 1
+
+
     # Save single color image
     def save_color(self, color, path = None):
 
